@@ -1,0 +1,186 @@
+Input:
+----------------
+
+temp.txt
+----------
+1	Srinivasa	Reddy	1000
+2	Amit	Y	2000
+3	Abhishek	P	3000
+4	Shruthi	R	4000
+5	Satissh	Q	500
+6	Bharathi	M	10000
+
+words.txt
+----------
+Hi is someone there?
+OK lets wait
+Hi i am fine.
+OK. lets hang on this weekend.
+How iss the day.
+OK fine.
+Bye Bye.
+Take care.
+
+emp_sales.txt
+----------
+1,Robin,22,25000,sales 
+2,BOB,23,30000,sales 
+3,Maya,23,25000,sales 
+4,Sara,25,40000,sales 
+5,David,23,45000,sales 
+6,Maggy,22,35000,sales
+
+emp_bonus.txt
+----------
+1,Robin,22,25000,sales 
+2,Jaya,23,20000,admin 
+3,Maya,23,25000,sales 
+4,Alia,25,50000,admin 
+5,David,23,45000,sales 
+6,Omar,30,30000,admin
+
+1) Use of Concat
+
+data = LOAD 'temp.txt' AS (id:int, firstname:chararray, lastname:chararray, salary:int);
+emp_fullnames = FOREACH data GENERATE $0, CONCAT($1, '', $2);
+DUMP emp_fullnames;
+
+(1,Srinivasa Reddy)
+(2,Amit Y)
+(3,Abhishek P)
+(4,Shruthi R)
+(5,Satissh Q)
+(6,Bharathi M)
+
+2) Use of Tokenize
+
+data = LOAD 'words.txt' as (line:chararray);
+words = FOREACH data GENERATE TOKENIZE(line);
+dump words;
+
+({(Hi),(is),(someone),(there?)})
+({(OK),(lets),(wait)})
+({(Hi),(i),(am),(fine.)})
+({(OK.),(lets),(hang),(on),(this),(weekend.)})
+({(How),(iss),(the),(day.)})
+({(OK),(fine.)})
+({(Bye),(Bye.)})
+({(Take),(care.)})
+
+3) Use of Sum
+
+data = LOAD 'temp.txt' AS (id:int, firstname:chararray, lastname:chararray, salary:int);
+emp_group = GROUP data all;
+emp_sal_sum = FOREACH emp_group GENERATE SUM(data.salary);
+dump emp_sal_sum;
+
+(20500)
+
+4) Use of Min
+
+data = LOAD 'temp.txt' AS (id:int, firstname:chararray, lastname:chararray, salary:int);
+emp_group = GROUP data all;
+emp_sal_min = FOREACH emp_group GENERATE MIN(data.salary);
+dump emp_sal_min;
+
+(500)
+
+5) Use of Max
+
+data = LOAD 'temp.txt' AS (id:int, firstname:chararray, lastname:chararray, salary:int);
+emp_group = GROUP data all;
+emp_sal_max = FOREACH emp_group GENERATE MAX(data.salary);
+dump emp_sal_max;
+
+(10000)
+
+6) Use of Limit
+
+data = LOAD 'temp.txt' AS (id:int, firstname:chararray, lastname:chararray, salary:int);
+sort_emp_on_salary = ORDER data by salary desc;
+Top_3_emp_by_salary = LIMIT sort_emp_on_salary 3;
+dump Top_3_emp_by_salary;
+
+(6,Bharathi,M,10000)
+(4,Shruthi,R,4000)
+(3,Abhishek,P,3000)
+
+7) Use of Store
+
+data = LOAD 'temp.txt' AS (id:int, firstname:chararray, lastname:chararray, salary:int);
+sort_emp_on_salary = ORDER data by salary desc;
+Top_3_emp_by_salary = LIMIT sort_emp_on_salary 3;
+Store Top_3_emp_by_salary into 'top_3_emp_by_sal';
+
+[acadgild@localhost ~]$ cd top_3_emp_by_sal
+[acadgild@localhost top_3_emp_by_sal]$ cat part-r-00000
+6	Bharathi	M	10000
+4	Shruthi	R	4000
+3	Abhishek	P	3000
+[acadgild@localhost top_3_emp_by_sal]$ 
+
+8) Use of Distinct
+
+data = LOAD 'temp.txt' AS (id:int, firstname:chararray, lastname:chararray, salary:int);
+data1 = LOAD 'temp.txt' AS (id:int, firstname:chararray, lastname:chararray, salary:int);
+union_data_data1 = union data, data1;
+unqiue_data = distinct union_data_data1;
+dump union_data_data1;
+
+(1,Srinivasa,Reddy,1000)
+(2,Amit,Y,2000)
+(3,Abhishek,P,3000)
+(4,Shruthi,R,4000)
+(5,Satissh,Q,500)
+(6,Bharathi,M,10000)
+
+9) Use of Flatten
+
+data = LOAD 'words.txt' as (line:chararray);
+words = FOREACH data GENERATE FLATTEN(TOKENIZE(line));
+dump words;
+
+(Hi)
+(is)
+(someone)
+(there?)
+(OK)
+(lets)
+(wait)
+(Hi)
+(i)
+(am)
+(fine.)
+(OK.)
+(lets)
+(hang)
+(on)
+(this)
+(weekend.)
+(How)
+(iss)
+(the)
+(day.)
+(OK)
+(fine.)
+(Bye)
+(Bye.)
+(Take)
+(care.)
+
+10) Use of IsEmpty
+
+emp_bonus = LOAD 'emp_bonus.txt' USING PigStorage(',') as (sno:int, name:chararray, age:int, dept:chararray);
+emp_sales = LOAD 'emp_sales.txt' USING PigStorage(',') as (sno:int, name:chararray, age:int, dept:chararray);
+cogroup_emp_sal_bonus = cogroup emp_sales by age, emp_bonus by age;
+dump cogroup_emp_sal_bonus;
+
+(22,{(6,Maggy,22,35000),(1,Robin,22,25000)},{(1,Robin,22,25000)})
+(23,{(5,David,23,45000),(3,Maya,23,25000),(2,BOB,23,30000)},{(5,David,23,45000),(3,Maya,23,25000),(2,Jaya,23,20000)})
+(25,{(4,Sara,25,40000)},{(4,Alia,25,50000)})
+(30,{},{(6,Omar,30,30000)})
+
+is_empty_data = filter cogroup_emp_sal_bonus by IsEmpty(emp_sales);
+dump is_empty_data;
+
+(30,{},{(6,Omar,30,30000)})

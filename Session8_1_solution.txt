@@ -1,0 +1,47 @@
+input: 
+--------------
+words.txt
+
+Hi is someone there?
+OK lets wait
+Hi i am fine.
+OK. lets hang on this weekend.
+How iss the day.
+OK fine.
+Bye Bye.
+Take care.
+
+Solution:
+--------------
+data = LOAD 'words.txt' as (line:chararray);
+words = FOREACH data GENERATE FLATTEN(TOKENIZE(line)) as word;
+grouped_words = GROUP words  by word;
+word_count = FOREACH grouped_words GENERATE group, COUNT(words);
+DUMP word_count;
+
+Output:
+--------------
+
+(i,1)
+(Hi,2)
+(OK,2)
+(am,1)
+(is,1)
+(on,1)
+(Bye,1)
+(How,1)
+(OK.,1)
+(iss,1)
+(the,1)
+(Bye.,1)
+(Take,1)
+(day.,1)
+(hang,1)
+(lets,2)
+(this,1)
+(wait,1)
+(care.,1)
+(fine.,2)
+(there?,1)
+(someone,1)
+(weekend.,1)
